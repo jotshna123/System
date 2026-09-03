@@ -1,1 +1,38 @@
-Multiplier-Free FPGA Radar Accelerator (1024-Point FFT + CoTM Pipeline)OverviewThis project presents an end-to-end, hardware-efficient FPGA acceleration pipeline for real-time radar micro-Doppler signal processing and target classification. The development began by architecting the Coalesced Tsetlin Machine (CoTM) inference hardware module in Verilog HDL to achieve a 100% DSP-free machine learning classifier. Next, offline Python training was executed to learn class clause rules and export optimized state matrices directly into hardware header files. A high-throughput, pipelined 1024-point FFT engine was then designed in Verilog HDL for front-end time-frequency spectrogram extraction. Finally, the full Radar System pipeline was integrated by connecting front-end FFT streaming, feature binarization, and back-end CoTM decision logic into a unified, low-power RTL architecture.System Architecture & Module Descriptions1. CoTM/ — Coalesced Tsetlin Machine Inference Enginecotm_params.vh: Global Verilog header defining architectural parameters, including clause counts, literal vector size, and class thresholds.gc.v: Hardware module implementing group condition / literal evaluation logic.imply.v: Implication logic gate ($\neg A \lor B$) evaluating literal state inclusion against input features.and.v: Multi-input AND reduction tree aggregating literal states into single clause outputs.clause_unit.v: Modular clause evaluator instantiating imply blocks and AND trees to generate clause signals.weighted_adder.v: Multiplier-free parallel adder tree accumulating clause votes for each target class.threshold.v: Decision logic comparing class totals against trained thresholds to generate final class predictions.cotm_top.v: Top-level RTL wrapper integrating clause units, adder trees, and thresholding into a standalone ML inference IP.2. CoTM_TRAINING_PYTHON/ — Offline Training & Hardware Code GenerationTraining.py: Python script executing Tsetlin Machine training on micro-Doppler datasets.C_matrix.mem: Memory initialisation file containing trained clause-connection matrices loaded directly into FPGA Block RAM.cotm_learned_rules.vh: Auto-generated Verilog header file containing learned Boolean rules and weights synthesized as hardcoded logic.3. FFT/ — Pipelined 1024-Point Feature Extraction Stageconfig_fft.vh: Header file configuring FFT point size ($N=1024$), fixed-point bit width, and pipeline stage depths.butterfly_pe.v: Processing Element (PE) executing complex Radix-2 butterfly additions and subtractions.twiddle_rom_1024.v: Read-Only Memory storing precomputed fixed-point twiddle factors ($e^{-j2\pi k / 1024}$).fft_bram_memory.v: Dual-port Block RAM buffer holding intermediate stage butterfly outputs and bit-reversal reordering.fft_1024_controller.v: Finite State Machine (FSM) managing pipeline stages, memory addresses, and data routing.fft_1024_top.v: Top-level 1024-point pipelined Fast Fourier Transform engine.fft_binarizer.v: Local thresholding module converting complex FFT power spectral outputs into binary vectors.cotm_classifier.v: Hardware wrapper interfacing FFT feature vectors to the classification interface.radar_ai_top.v: Sub-system top module combining the 1024-point FFT and classification logic.4. RADAR_SYSTEM/ — Top-Level System Integrationradar_feature_binarizer.v: System-level binarization block mapping spectral power outputs into high-density binary feature vectors for CoTM evaluation.radar_system_top.v: Master top-level RTL module bridging raw time-domain radar data input, 1024-point FFT signal transformation, feature binarization, and multiplier-free CoTM target classification.
+# Multiplier-Free FPGA Radar Accelerator (1024-Point FFT + CoTM Pipeline)
+
+## Overview
+This project presents an end-to-end, hardware-efficient FPGA acceleration pipeline for real-time radar micro-Doppler signal processing and target classification. The development began by architecting the Coalesced Tsetlin Machine (CoTM) inference hardware module in Verilog HDL to achieve a 100% DSP-free machine learning classifier. Next, offline Python training was executed to learn class clause rules and export optimized state matrices directly into hardware header files. A high-throughput, pipelined 1024-point FFT engine was then designed in Verilog HDL for front-end time-frequency spectrogram extraction. Finally, the full Radar System pipeline was integrated by connecting front-end FFT streaming, feature binarization, and back-end CoTM decision logic into a unified, low-power RTL architecture.
+
+---
+
+## System Architecture & Module Descriptions
+
+### 1. CoTM/ — Coalesced Tsetlin Machine Inference Engine
+* **`cotm_params.vh`**: Global Verilog header defining architectural parameters, including clause counts, literal vector size, and class thresholds.
+* **`gc.v`**: Hardware module implementing group condition / literal evaluation logic.
+* **`imply.v`**: Implication logic gate ($\neg A \lor B$) evaluating literal state inclusion against input features.
+* **`and.v`**: Multi-input AND reduction tree aggregating literal states into single clause outputs.
+* **`clause_unit.v`**: Modular clause evaluator instantiating imply blocks and AND trees to generate clause signals.
+* **`weighted_adder.v`**: Multiplier-free parallel adder tree accumulating clause votes for each target class.
+* **`threshold.v`**: Decision logic comparing class totals against trained thresholds to generate final class predictions.
+* **`cotm_top.v`**: Top-level RTL wrapper integrating clause units, adder trees, and thresholding into a standalone ML inference IP.
+
+### 2. CoTM_TRAINING_PYTHON/ — Offline Training & Hardware Code Generation
+* **`Training.py`**: Python script executing Tsetlin Machine training on micro-Doppler datasets.
+* **`C_matrix.mem`**: Memory initialisation file containing trained clause-connection matrices loaded directly into FPGA Block RAM.
+* **`cotm_learned_rules.vh`**: Auto-generated Verilog header file containing learned Boolean rules and weights synthesized as hardcoded logic.
+
+### 3. FFT/ — Pipelined 1024-Point Feature Extraction Stage
+* **`config_fft.vh`**: Header file configuring FFT point size ($N=1024$), fixed-point bit width, and pipeline stage depths.
+* **`butterfly_pe.v`**: Processing Element (PE) executing complex Radix-2 butterfly additions and subtractions.
+* **`twiddle_rom_1024.v`**: Read-Only Memory storing precomputed fixed-point twiddle factors ($e^{-j2\pi k / 1024}$).
+* **`fft_bram_memory.v`**: Dual-port Block RAM buffer holding intermediate stage butterfly outputs and bit-reversal reordering.
+* **`fft_1024_controller.v`**: Finite State Machine (FSM) managing pipeline stages, memory addresses, and data routing.
+* **`fft_1024_top.v`**: Top-level 1024-point pipelined Fast Fourier Transform engine.
+* **`fft_binarizer.v`**: Local thresholding module converting complex FFT power spectral outputs into binary vectors.
+* **`cotm_classifier.v`**: Hardware wrapper interfacing FFT feature vectors to the classification interface.
+* **`radar_ai_top.v`**: Sub-system top module combining the 1024-point FFT and classification logic.
+
+### 4. RADAR_SYSTEM/ — Top-Level System Integration
+* **`radar_feature_binarizer.v`**: System-level binarization block mapping spectral power outputs into high-density binary feature vectors for CoTM evaluation.
+* **`radar_system_top.v`**: Master top-level RTL module bridging raw time-domain radar data input, 1024-point FFT signal transformation, feature binarization, and multiplier-free CoTM target classification.
